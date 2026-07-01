@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 import os
+import time
 
 app = Flask(__name__)
 
@@ -14,11 +15,38 @@ client = InferenceClient(
     api_key=HF_TOKEN
 )
 
-# pipe = pipeline(
-#     "text-generation",
-#     model="google/gemma-3-1b-it",
-#     device_map="auto"
-# )
+def call_hf_api(payload):
+    try:
+        response = requests.post(
+            API_URL,
+            headers=headers,
+            json=payload,
+            timeout=10  # IMPORTANT
+        )
+        return response.json()
+
+    except requests.exceptions.Timeout:
+        return {"error": "Request timed out. Try again."}
+
+def safe_api_call(payload):
+    for attempt in range(3):
+        try:
+            return call_hf_api(payload)
+        except:
+            time.sleep(1)
+
+    return {"error": "AI service unavailable right now"}
+
+cache = {}
+
+def get_response(prompt):
+    if prompt in cache:
+        return cache[prompt]
+
+    response = safe_api_call(prompt)
+    cache[prompt] = response
+
+    return response
 
 @app.route("/")
 def hello_world():
