@@ -1,6 +1,4 @@
 from flask import Flask, render_template, request, jsonify
-from transformers import pipeline
-from huggingface_hub import login
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 import os
